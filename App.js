@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Button, TextInput, Alert, AppState } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Button, TextInput, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
-// Default list of names
+// Default list of timers
 const defaultTimers = [
   { id: '1', name: 'Rory', time: 0, running: false },
   { id: '2', name: 'Jack', time: 0, running: false },
@@ -16,106 +16,148 @@ const defaultTimers = [
   { id: '9', name: 'Brax', time: 0, running: false },
 ];
 
-// Main Timer Screen
-function TimerScreen({ navigation, timers, setTimers }) {
-  const [appState, setAppState] = useState(AppState.currentState);
+const red = '#FF6347'
+const orange = '#F5CA88'
+const white = '#fff'
+const blue = '#d0ebff'
 
-  const formatTime = (time) => {
-    const totalSeconds = Math.floor(time);
-    const tenths = Math.floor((time % 1) * 10);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes > 0 ? `${minutes}m ` : ''}${seconds}s.${tenths}`;
-  };
+const orangeWaternark = 60
+const redWaternark = 120
 
-  const toggleTimer = (id) => {
-    setTimers((prevTimers) =>
-      prevTimers.map((timer) => {
-        if (timer.id === id) {
-          if (timer.running) {
-            clearInterval(timer.intervalId);
-            return { ...timer, running: false };
-          } else {
-            const intervalId = setInterval(() => {
-              setTimers((currentTimers) =>
-                currentTimers.map((t) =>
-                  t.id === id ? { ...t, time: t.time + 0.1 } : t
-                )
-              );
-            }, 100);
-            return { ...timer, running: true, intervalId };
-          }
-        }
-        return timer;
-      })
-    );
-  };
 
-  const resetTimers = () => {
-    setTimers((prevTimers) => {
-      prevTimers.forEach((timer) => {
-        if (timer.running) {
-          clearInterval(timer.intervalId);
-        }
-      });
-      return prevTimers.map((timer) => ({
-        ...timer,
-        time: 0,
-        running: false,
-      }));
-    });
-  };
 
-  const resetSingleTimer = (id) => {
-    setTimers((prevTimers) =>
-      prevTimers.map((timer) =>
-        timer.id === id
-          ? {
-              ...timer,
-              time: 0,
-              running: timer.running,
-            }
-          : timer
-      )
-    );
-  };
+// Helper function to calculate background color based on time difference
+const getTimerBackgroundColor = (timer, timers) => {
+  let backgroundColor = white;  // Default color
+  const isActive = timer.running;
 
-  const renderItem = ({ item }) => (
+  // Check for active timer first
+  if (isActive) {
+    backgroundColor = blue;  // Light blue for active timers
+  }
+
+  // Now compare with other timers to adjust the color for delay
+  timers.forEach((otherTimer) => {
+    if (otherTimer.id !== timer.id && timer.time < otherTimer.time) {
+      const timeDiff = otherTimer.time - timer.time;
+      if (timeDiff >= redWaternark) {
+        backgroundColor = red;  // Red (2 minutes behind)
+      } else if (timeDiff >= orangeWaternark) {
+        backgroundColor = orange;  // Orange (1 minute behind)
+      }
+    }
+  });
+
+  return backgroundColor;
+};
+
+// Timer Component to handle start, stop, and display
+const TimerItem = ({ timer, timers, toggleTimer, resetTimer }) => {
+  const backgroundColor = getTimerBackgroundColor(timer, timers);
+  return (
     <TouchableOpacity
-      style={[
-        styles.item,
-        item.running && styles.activeItem,
-      ]}
-      onPress={() => toggleTimer(item.id)}
-      onLongPress={() => resetSingleTimer(item.id)}
+      style={[styles.item, { backgroundColor }]}
+      onPress={() => toggleTimer(timer.id)}
+      onLongPress={() => resetTimer(timer.id)}
     >
-      <Text style={styles.name}>{item.name}</Text>
-      <Text style={styles.timer}>{formatTime(item.time)}</Text>
+      <Text style={styles.name}>{timer.name}</Text>
+      <Text style={styles.timer}>{formatTime(timer.time)}</Text>
       <Button
         title="Delete"
         color="red"
-        onPress={() => setTimers((prevTimers) => prevTimers.filter((timer) => timer.id !== item.id))}
+        onPress={() => resetTimer(timer.id)}
       />
     </TouchableOpacity>
   );
+};
+
+// Format time in minutes, seconds, and tenths of a second
+const formatTime = (time) => {
+  const totalSeconds = Math.floor(time);
+  const tenths = Math.floor((time % 1) * 10);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes > 0 ? `${minutes}m ` : ''}${seconds}s.${tenths}`;
+};
+
+// Main Timer Screen Component
+const TimerScreen = ({ timers, setTimers }) => {
+  const sortedTimers = timers.sort((a, b) => {
+    // Prioritize red timers (those 2 minutes behind)
+    const aBgColor = getTimerBackgroundColor(a, timers);
+    const bBgColor = getTimerBackgroundColor(b, timers);
+
+    if (aBgColor === red && bBgColor !== red) return -1;
+    if (aBgColor !== red && bBgColor === red) return 1;
+
+    return 0;  // No change if both are red or not
+  });
+
+  // Toggle timer start/stop
+  const toggleTimer = (id) => {
+    setTimers(prevTimers => prevTimers.map((timer) => {
+      if (timer.id === id) {
+        if (timer.running) {
+          clearInterval(timer.intervalId);
+          return { ...timer, running: false };
+        } else {
+          const intervalId = setInterval(() => {
+            setTimers((currentTimers) =>
+              currentTimers.map((t) => (t.id === id ? { ...t, time: t.time + 0.1 } : t))
+            );
+          }, 100);
+          return { ...timer, running: true, intervalId };
+        }
+      }
+      return timer;
+    }));
+  };
+
+  // Reset all timers
+  const resetTimers = () => {
+    setTimers(prevTimers => {
+      // Stop all active timers
+      prevTimers.forEach(timer => {
+        if (timer.running) {
+          clearInterval(timer.intervalId); // Stop the timer
+        }
+      });
+      
+      // Reset all timers
+      return prevTimers.map(timer => ({ ...timer, time: 0, running: false }));
+    });
+  };
+
+  // Reset a single timer
+  const resetSingleTimer = (id) => {
+    setTimers(prevTimers => prevTimers.map(timer => 
+      timer.id === id ? { ...timer, time: 0, running: false } : timer
+    ));
+  };
 
   return (
     <View style={styles.container}>
       <FlatList
-        data={timers}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        data={sortedTimers}
+        renderItem={({ item }) => (
+          <TimerItem
+            timer={item}
+            timers={timers}
+            toggleTimer={toggleTimer}
+            resetTimer={resetSingleTimer}
+          />
+        )}
+        keyExtractor={item => item.id}
       />
       <View style={styles.bottomButtonsContainer}>
         <Button title="Reset All Timers" onPress={resetTimers} />
-        <Button title="Go to Admin" onPress={() => navigation.navigate('Admin')} />
       </View>
     </View>
   );
-}
+};
 
-// Admin Screen
-function AdminScreen({ navigation, setTimers }) {
+// Admin Screen Component to add new timers
+const AdminScreen = ({ setTimers }) => {
   const [newName, setNewName] = useState('');
 
   const addName = () => {
@@ -129,10 +171,7 @@ function AdminScreen({ navigation, setTimers }) {
       time: 0,
       running: false,
     };
-    setTimers((prevTimers) => {
-      const updatedTimers = [...prevTimers, newTimer];
-      return updatedTimers;
-    });
+    setTimers(prevTimers => [...prevTimers, newTimer]);
     setNewName('');
   };
 
@@ -145,31 +184,29 @@ function AdminScreen({ navigation, setTimers }) {
         onChangeText={setNewName}
       />
       <Button title="Add Name" onPress={addName} />
-      <Button title="Back to Timers" onPress={() => navigation.goBack()} />
     </View>
   );
-}
+};
 
-const Stack = createStackNavigator();
-
-export default function App() {
-  const [timers, setTimers] = useState(defaultTimers); // Use defaultTimers initially
+// Main App Component
+const App = () => {
+  const [timers, setTimers] = useState(defaultTimers);
 
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Timer">
-        <Stack.Screen name="Timer"
-        options={{ title: 'Sunbury Braves Player Timer' }}  // Set title for Timer screen
-        >
+        <Stack.Screen name="Timer" options={{ title: 'Sunbury Braves Timer' }}>
           {(props) => <TimerScreen {...props} timers={timers} setTimers={setTimers} />}
         </Stack.Screen>
-        <Stack.Screen name="Admin">
+        <Stack.Screen name="Admin" options={{ title: 'Admin Panel' }}>
           {(props) => <AdminScreen {...props} setTimers={setTimers} />}
         </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );
-}
+};
+
+const Stack = createStackNavigator();
 
 const styles = StyleSheet.create({
   container: {
@@ -210,3 +247,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 });
+
+export default App;
