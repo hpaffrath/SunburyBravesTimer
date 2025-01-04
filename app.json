@@ -14,14 +14,18 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.hpaffrath.MyFirstApp"
+      "bundleIdentifier": "com.hpaffrath.MyFirstApp",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.hpaffrath.MyFirstApp"
+      "package": "com.hpaffrath.MyFirstApp",
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,6 +37,9 @@
     },
     "plugins": [
       "expo-sqlite"
-    ]
+    ],
+    "updates": {
+      "url": "https://u.expo.dev/eda91cd5-5595-410c-890c-c97c792d8391"
+    }
   }
 }

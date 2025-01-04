@@ -26,7 +26,8 @@
     "react-native-screens": "~4.1.0",
     "react-native-sqlite-storage": "^6.0.1",
     "react-native-web": "~0.19.13",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "expo-updates": "~0.26.10"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

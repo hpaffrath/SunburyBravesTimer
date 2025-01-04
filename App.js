@@ -1,51 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, FlatList, Button, TextInput, Alert, AppState } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
+// Default list of names
+const defaultTimers = [
+  { id: '1', name: 'Rory', time: 0, running: false },
+  { id: '2', name: 'Jack', time: 0, running: false },
+  { id: '3', name: 'Zach', time: 0, running: false },
+  { id: '4', name: 'Harry', time: 0, running: false },
+  { id: '5', name: 'Elliot', time: 0, running: false },
+  { id: '6', name: 'Tyler', time: 0, running: false },
+  { id: '7', name: 'Dan', time: 0, running: false },
+  { id: '8', name: 'Braeden', time: 0, running: false },
+  { id: '9', name: 'Brax', time: 0, running: false },
+];
+
 // Main Timer Screen
 function TimerScreen({ navigation, timers, setTimers }) {
-  const [appState, setAppState] = useState(AppState.currentState); // Track app state (active/background)
-
-  useEffect(() => {
-    const saveTimers = async () => {
-      try {
-        await AsyncStorage.setItem('timers', JSON.stringify(timers));
-      } catch (error) {
-        console.error('Error saving timers to storage:', error);
-      }
-    };
-    saveTimers();
-
-    const appStateListener = AppState.addEventListener('change', (nextAppState) => {
-      setAppState(nextAppState);
-      if (nextAppState === 'background') {
-        // Pause all timers when the app goes to the background
-        timers.forEach((timer) => {
-          if (timer.running) {
-            clearInterval(timer.intervalId);
-            setTimers((prevTimers) =>
-              prevTimers.map((t) =>
-                t.id === timer.id ? { ...t, running: false } : t
-              )
-            );
-          }
-        });
-      }
-    });
-
-    return () => {
-      appStateListener.remove();
-    };
-  }, [timers, setTimers]);
+  const [appState, setAppState] = useState(AppState.currentState);
 
   const formatTime = (time) => {
     const totalSeconds = Math.floor(time);
     const tenths = Math.floor((time % 1) * 10);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-
     return `${minutes > 0 ? `${minutes}m ` : ''}${seconds}s.${tenths}`;
   };
 
@@ -101,47 +80,11 @@ function TimerScreen({ navigation, timers, setTimers }) {
     );
   };
 
-  // Check if a timer is more than 5 or 10 minutes behind
-  const checkTimerStatus = () => {
-    const latestTime = Math.max(...timers.map((t) => t.time)); // Get the latest timer time
-    return timers.map((timer) => {
-      const timeDifference = latestTime - timer.time;
-
-      let isAmber = false;
-      let isRed = false;
-
-      if (timeDifference >= 300 && timeDifference < 600) { // 5 minutes = 300 seconds, 10 minutes = 600 seconds
-        isAmber = true;
-      }
-      if (timeDifference >= 600) {
-        isRed = true;
-      }
-
-      return {
-        ...timer,
-        isAmber,
-        isRed,
-        timeDifference,
-      };
-    });
-  };
-
-  // Sort the timers: Red timers go to the top, then Amber, and then the rest by original order
-  const sortedTimers = checkTimerStatus().sort((a, b) => {
-    if (a.isRed && !b.isRed) return -1;
-    if (!a.isRed && b.isRed) return 1;
-    if (a.isAmber && !b.isAmber) return -1;
-    if (!a.isAmber && b.isAmber) return 1;
-    return 0;
-  });
-
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={[
         styles.item,
-        item.running && styles.activeItem, // Apply light blue background if the timer is running
-        item.isRed && styles.redItem, // Apply red background if the timer is more than 10 minutes behind
-        item.isAmber && styles.amberItem, // Apply amber background if the timer is more than 5 minutes behind
+        item.running && styles.activeItem,
       ]}
       onPress={() => toggleTimer(item.id)}
       onLongPress={() => resetSingleTimer(item.id)}
@@ -151,9 +94,7 @@ function TimerScreen({ navigation, timers, setTimers }) {
       <Button
         title="Delete"
         color="red"
-        onPress={() => {
-          setTimers((prevTimers) => prevTimers.filter((timer) => timer.id !== item.id));
-        }}
+        onPress={() => setTimers((prevTimers) => prevTimers.filter((timer) => timer.id !== item.id))}
       />
     </TouchableOpacity>
   );
@@ -161,11 +102,10 @@ function TimerScreen({ navigation, timers, setTimers }) {
   return (
     <View style={styles.container}>
       <FlatList
-        data={sortedTimers}
+        data={timers}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
       />
-
       <View style={styles.bottomButtonsContainer}>
         <Button title="Reset All Timers" onPress={resetTimers} />
         <Button title="Go to Admin" onPress={() => navigation.navigate('Admin')} />
@@ -174,7 +114,7 @@ function TimerScreen({ navigation, timers, setTimers }) {
   );
 }
 
-// Admin Page to Add Names
+// Admin Screen
 function AdminScreen({ navigation, setTimers }) {
   const [newName, setNewName] = useState('');
 
@@ -191,10 +131,9 @@ function AdminScreen({ navigation, setTimers }) {
     };
     setTimers((prevTimers) => {
       const updatedTimers = [...prevTimers, newTimer];
-      AsyncStorage.setItem('timers', JSON.stringify(updatedTimers)); // Save updated timers
       return updatedTimers;
     });
-    setNewName(''); // Clear input after adding
+    setNewName('');
   };
 
   return (
@@ -214,26 +153,14 @@ function AdminScreen({ navigation, setTimers }) {
 const Stack = createStackNavigator();
 
 export default function App() {
-  const [timers, setTimers] = useState([]);
-
-  useEffect(() => {
-    const loadTimers = async () => {
-      try {
-        const storedTimers = await AsyncStorage.getItem('timers');
-        if (storedTimers) {
-          setTimers(JSON.parse(storedTimers));
-        }
-      } catch (error) {
-        console.error('Error loading timers from storage:', error);
-      }
-    };
-    loadTimers();
-  }, []);
+  const [timers, setTimers] = useState(defaultTimers); // Use defaultTimers initially
 
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Timer">
-        <Stack.Screen name="Timer">
+        <Stack.Screen name="Timer"
+        options={{ title: 'Sunbury Braves Player Timer' }}  // Set title for Timer screen
+        >
           {(props) => <TimerScreen {...props} timers={timers} setTimers={setTimers} />}
         </Stack.Screen>
         <Stack.Screen name="Admin">
@@ -262,13 +189,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   activeItem: {
-    backgroundColor: '#d0ebff', // Light blue background for active timers
-  },
-  redItem: {
-    backgroundColor: '#ffcccc', // Red background for timers 10+ minutes behind
-  },
-  amberItem: {
-    backgroundColor: '#ffeb99', // Amber background for timers 5-10 minutes behind
+    backgroundColor: '#d0ebff',
   },
   name: {
     fontSize: 18,
