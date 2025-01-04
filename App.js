@@ -24,8 +24,6 @@ const blue = '#d0ebff'
 const orangeWaternark = 60
 const redWaternark = 120
 
-
-
 // Helper function to calculate background color based on time difference
 const getTimerBackgroundColor = (timer, timers) => {
   let backgroundColor = white;  // Default color
@@ -81,9 +79,13 @@ const formatTime = (time) => {
 };
 
 // Main Timer Screen Component
-const TimerScreen = ({ timers, setTimers }) => {
+const TimerScreen = ({ timers, setTimers, navigation }) => {
   const sortedTimers = timers.sort((a, b) => {
-    // Prioritize red timers (those 2 minutes behind)
+    // Prioritize active timers (those that are running)
+    if (a.running && !b.running) return -1;
+    if (!a.running && b.running) return 1;
+
+    // If both timers have the same active status, prioritize red timers (those 2 minutes behind)
     const aBgColor = getTimerBackgroundColor(a, timers);
     const bBgColor = getTimerBackgroundColor(b, timers);
 
@@ -149,8 +151,13 @@ const TimerScreen = ({ timers, setTimers }) => {
         )}
         keyExtractor={item => item.id}
       />
+      
       <View style={styles.bottomButtonsContainer}>
         <Button title="Reset All Timers" onPress={resetTimers} />
+        <Button
+          title="Go to Admin Panel"
+          onPress={() => navigation.navigate('Admin')}
+        />
       </View>
     </View>
   );
