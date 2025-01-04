@@ -191,6 +191,12 @@ const AdminScreen = ({ setTimers }) => {
         onChangeText={setNewName}
       />
       <Button title="Add Name" onPress={addName} />
+      <Text>To use the App</Text>
+      <Text>Press a timer to start the timer, press again to stop the timer. {'\n'}Long press to reset the timer.</Text>
+      <Text>Acive timers will go to the top and be Blue.  {'\n'}
+        If the timer is {orangeWaternark / 60} minutes behind, it will turn Orange {'\n'}
+        If the timer is {redWaternark / 60} minutes behind, it will turn Red{'\n'}
+        </Text>
     </View>
   );
 };
