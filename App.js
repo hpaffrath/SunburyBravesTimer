@@ -21,8 +21,8 @@ const orange = '#F5CA88'
 const white = '#fff'
 const blue = '#d0ebff'
 
-const orangeWaternark = 60
-const redWaternark = 120
+const orangeWaternark = 300 // 5 minutes
+const redWaternark = 600 // 10 minutes
 
 // Helper function to calculate background color based on time difference
 const getTimerBackgroundColor = (timer, timers) => {
