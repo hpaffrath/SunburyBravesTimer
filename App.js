@@ -260,8 +260,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   bottomButtonsContainer: {
-    marginTop: 20,
-    padding: 20,
+    position: 'absolute',
+    bottom: 10, // Raise it higher from the bottom
+    left: 20, // Add padding from the left edge
+    right: 20, // Add padding from the right edge
+    flexDirection: 'row', // Align buttons horizontally
+    justifyContent: 'space-between', // Space buttons apart
   },
   input: {
     height: 40,
