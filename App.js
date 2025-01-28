@@ -50,7 +50,7 @@ const getTimerBackgroundColor = (timer, timers) => {
 };
 
 // Timer Component to handle start, stop, and display
-const TimerItem = ({ timer, timers, toggleTimer, resetTimer }) => {
+const TimerItem = ({ timer, timers, toggleTimer, resetTimer, deleteTimer }) => {
   const backgroundColor = getTimerBackgroundColor(timer, timers);
   return (
     <TouchableOpacity
@@ -63,7 +63,7 @@ const TimerItem = ({ timer, timers, toggleTimer, resetTimer }) => {
       <Button
         title="Delete"
         color="red"
-        onPress={() => resetTimer(timer.id)}
+        onPress={() => deleteTimer(timer.id)}
       />
     </TouchableOpacity>
   );
@@ -81,11 +81,11 @@ const formatTime = (time) => {
 // Main Timer Screen Component
 const TimerScreen = ({ timers, setTimers, navigation }) => {
   const sortedTimers = timers.sort((a, b) => {
-    // Prioritize active timers (those that are running)
+     // Prioritize active timers (those that are running)
     if (a.running && !b.running) return -1;
     if (!a.running && b.running) return 1;
 
-    // If both timers have the same active status, prioritize red timers (those 2 minutes behind)
+// If both timers have the same active status, prioritize red timers (those 2 minutes behind)
     const aBgColor = getTimerBackgroundColor(a, timers);
     const bBgColor = getTimerBackgroundColor(b, timers);
 
@@ -97,46 +97,58 @@ const TimerScreen = ({ timers, setTimers, navigation }) => {
 
   // Toggle timer start/stop
   const toggleTimer = (id) => {
-    setTimers(prevTimers => prevTimers.map((timer) => {
-      if (timer.id === id) {
-        if (timer.running) {
-          clearInterval(timer.intervalId);
-          return { ...timer, running: false };
-        } else {
-          const intervalId = setInterval(() => {
-            setTimers((currentTimers) =>
-              currentTimers.map((t) => (t.id === id ? { ...t, time: t.time + 0.1 } : t))
-            );
-          }, 100);
-          return { ...timer, running: true, intervalId };
-        }
-      }
-      return timer;
-    }));
+    setTimers((prevTimers) =>
+      prevTimers.map((timer) =>
+        timer.id === id
+          ? {
+              ...timer,
+              running: !timer.running,
+              intervalId: !timer.running
+                ? setInterval(() => {
+                    setTimers((currentTimers) =>
+                      currentTimers.map((t) =>
+                        t.id === id ? { ...t, time: t.time + 0.1 } : t
+                      )
+                    );
+                  }, 100)
+                : clearInterval(timer.intervalId),
+            }
+          : timer
+      )
+    );
   };
 
   // Reset all timers
   const resetTimers = () => {
-    setTimers(prevTimers => {
+    setTimers((prevTimers) => {
       // Stop all active timers
-      prevTimers.forEach(timer => {
+      prevTimers.forEach((timer) => {
         if (timer.running) {
           clearInterval(timer.intervalId); // Stop the timer
         }
       });
-      
-      // Reset all timers
-      return prevTimers.map(timer => ({ ...timer, time: 0, running: false }));
+      return prevTimers.map((timer) => ({
+        ...timer,
+        time: 0,
+        running: false,
+      }));
     });
   };
 
-  // Reset a single timer
-  const resetSingleTimer = (id) => {
-    setTimers(prevTimers => prevTimers.map(timer => 
-      timer.id === id ? { ...timer, time: 0, running: false } : timer
-    ));
+  // Delete timer
+  const deleteTimer = (id) => {
+    setTimers((prevTimers) => prevTimers.filter((timer) => timer.id !== id));
   };
 
+
+  // Reset a single timer
+  const resetSingleTimer = (id) => {
+    setTimers((prevTimers) =>
+      prevTimers.map((timer) =>
+        timer.id === id ? { ...timer, time: 0, running: false } : timer
+      )
+    );
+  };
   return (
     <View style={styles.container}>
       <FlatList
@@ -147,16 +159,16 @@ const TimerScreen = ({ timers, setTimers, navigation }) => {
             timers={timers}
             toggleTimer={toggleTimer}
             resetTimer={resetSingleTimer}
+            deleteTimer={deleteTimer} // Pass deleteTimer here
           />
         )}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
       />
-      
       <View style={styles.bottomButtonsContainer}>
         <Button title="Reset All Timers" onPress={resetTimers} />
         <Button
           title="Go to Admin Panel"
-          onPress={() => navigation.navigate('Admin')}
+          onPress={() => navigation.navigate("Admin")}
         />
       </View>
     </View>

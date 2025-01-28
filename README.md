@@ -12,7 +12,7 @@ Export for Web
 `npx expo export -p web`
 
 Build Android for Cloud
-eas build -p android
+`eas build -p android`
 
 Build for IOS for cloud
 Note : Apple Developer subscription required.
