@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Button, TextInput, Alert } from 'react-native';
+import { AppState, StyleSheet, Text, View, TouchableOpacity, FlatList, Button, TextInput, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
@@ -16,22 +16,22 @@ const defaultTimers = [
   { id: '9', name: 'Brax', time: 0, running: false },
 ];
 
-const red = '#FF6347'
-const orange = '#F5CA88'
-const white = '#fff'
-const blue = '#d0ebff'
+const red = '#FF6347';
+const orange = '#F5CA88';
+const white = '#fff';
+const blue = '#d0ebff';
 
-const orangeWaternark = 300 // 5 minutes
-const redWaternark = 600 // 10 minutes
+const orangeWaternark = 300; // 5 minutes
+const redWaternark = 600; // 10 minutes
 
 // Helper function to calculate background color based on time difference
 const getTimerBackgroundColor = (timer, timers) => {
-  let backgroundColor = white;  // Default color
+  let backgroundColor = white; // Default color
   const isActive = timer.running;
 
   // Check for active timer first
   if (isActive) {
-    backgroundColor = blue;  // Light blue for active timers
+    backgroundColor = blue; // Light blue for active timers
   }
 
   // Now compare with other timers to adjust the color for delay
@@ -39,9 +39,9 @@ const getTimerBackgroundColor = (timer, timers) => {
     if (otherTimer.id !== timer.id && timer.time < otherTimer.time) {
       const timeDiff = otherTimer.time - timer.time;
       if (timeDiff >= redWaternark) {
-        backgroundColor = red;  // Red (2 minutes behind)
+        backgroundColor = red; // Red (2 minutes behind)
       } else if (timeDiff >= orangeWaternark) {
-        backgroundColor = orange;  // Orange (1 minute behind)
+        backgroundColor = orange; // Orange (1 minute behind)
       }
     }
   });
@@ -60,11 +60,7 @@ const TimerItem = ({ timer, timers, toggleTimer, resetTimer, deleteTimer }) => {
     >
       <Text style={styles.name}>{timer.name}</Text>
       <Text style={styles.timer}>{formatTime(timer.time)}</Text>
-      <Button
-        title="Delete"
-        color="red"
-        onPress={() => deleteTimer(timer.id)}
-      />
+      <Button title="Delete" color="red" onPress={() => deleteTimer(timer.id)} />
     </TouchableOpacity>
   );
 };
@@ -80,19 +76,46 @@ const formatTime = (time) => {
 
 // Main Timer Screen Component
 const TimerScreen = ({ timers, setTimers, navigation }) => {
+  const [appState, setAppState] = useState(AppState.currentState);
+  const [backgroundTime, setBackgroundTime] = useState(null);
+
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState) => {
+      if (appState.match(/inactive|background/) && nextAppState === 'active') {
+        // App has come to the foreground
+        const currentTime = Date.now();
+        const elapsedTime = (currentTime - backgroundTime) / 1000; // Convert to seconds
+        setTimers((prevTimers) =>
+          prevTimers.map((timer) =>
+            timer.running ? { ...timer, time: timer.time + elapsedTime } : timer
+          )
+        );
+      } else if (nextAppState === 'background') {
+        // App has gone to the background
+        setBackgroundTime(Date.now());
+      }
+      setAppState(nextAppState);
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, [appState, backgroundTime, setTimers]);
+
   const sortedTimers = timers.sort((a, b) => {
-     // Prioritize active timers (those that are running)
+    // Prioritize active timers (those that are running)
     if (a.running && !b.running) return -1;
     if (!a.running && b.running) return 1;
 
-// If both timers have the same active status, prioritize red timers (those 2 minutes behind)
+    // If both timers have the same active status, prioritize red timers (those 2 minutes behind)
     const aBgColor = getTimerBackgroundColor(a, timers);
     const bBgColor = getTimerBackgroundColor(b, timers);
 
     if (aBgColor === red && bBgColor !== red) return -1;
     if (aBgColor !== red && bBgColor === red) return 1;
 
-    return 0;  // No change if both are red or not
+    return 0; // No change if both are red or not
   });
 
   // Toggle timer start/stop
@@ -140,7 +163,6 @@ const TimerScreen = ({ timers, setTimers, navigation }) => {
     setTimers((prevTimers) => prevTimers.filter((timer) => timer.id !== id));
   };
 
-
   // Reset a single timer
   const resetSingleTimer = (id) => {
     setTimers((prevTimers) =>
@@ -149,8 +171,9 @@ const TimerScreen = ({ timers, setTimers, navigation }) => {
       )
     );
   };
+
   return (
-    <View style={styles.container}>
+    <View style={{ flex: 1 }}>
       <FlatList
         data={sortedTimers}
         renderItem={({ item }) => (
@@ -159,7 +182,7 @@ const TimerScreen = ({ timers, setTimers, navigation }) => {
             timers={timers}
             toggleTimer={toggleTimer}
             resetTimer={resetSingleTimer}
-            deleteTimer={deleteTimer} // Pass deleteTimer here
+            deleteTimer={deleteTimer}
           />
         )}
         keyExtractor={(item) => item.id}
@@ -168,7 +191,7 @@ const TimerScreen = ({ timers, setTimers, navigation }) => {
         <Button title="Reset All Timers" onPress={resetTimers} />
         <Button
           title="Go to Admin Panel"
-          onPress={() => navigation.navigate("Admin")}
+          onPress={() => navigation.navigate('Admin')}
         />
       </View>
     </View>
@@ -190,7 +213,7 @@ const AdminScreen = ({ setTimers }) => {
       time: 0,
       running: false,
     };
-    setTimers(prevTimers => [...prevTimers, newTimer]);
+    setTimers((prevTimers) => [...prevTimers, newTimer]);
     setNewName('');
   };
 
@@ -204,11 +227,15 @@ const AdminScreen = ({ setTimers }) => {
       />
       <Button title="Add Name" onPress={addName} />
       <Text>To use the App</Text>
-      <Text>Press a timer to start the timer, press again to stop the timer. {'\n'}Long press to reset the timer.</Text>
-      <Text>Acive timers will go to the top and be Blue.  {'\n'}
+      <Text>
+        Press a timer to start the timer, press again to stop the timer. {'\n'}Long press to reset
+        the timer.
+      </Text>
+      <Text>
+        Active timers will go to the top and be Blue. {'\n'}
         If the timer is {orangeWaternark / 60} minutes behind, it will turn Orange {'\n'}
         If the timer is {redWaternark / 60} minutes behind, it will turn Red{'\n'}
-        </Text>
+      </Text>
     </View>
   );
 };
@@ -236,7 +263,7 @@ const Stack = createStackNavigator();
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 50,
+    paddingTop: 20,
     backgroundColor: '#f5f5f5',
   },
   item: {
