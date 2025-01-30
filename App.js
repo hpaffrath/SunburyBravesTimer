@@ -2,19 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { AppState, StyleSheet, Text, View, TouchableOpacity, FlatList, Button, TextInput, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Default list of timers
-const defaultTimers = [
-  { id: '1', name: 'Rory', time: 0, running: false },
-  { id: '2', name: 'Jack', time: 0, running: false },
-  { id: '3', name: 'Zach', time: 0, running: false },
-  { id: '4', name: 'Harry', time: 0, running: false },
-  { id: '5', name: 'Elliot', time: 0, running: false },
-  { id: '6', name: 'Tyler', time: 0, running: false },
-  { id: '7', name: 'Dan', time: 0, running: false },
-  { id: '8', name: 'Braeden', time: 0, running: false },
-  { id: '9', name: 'Brax', time: 0, running: false },
-];
+// Default list of timers (empty initially)
+const defaultTimers = [];
 
 const red = '#FF6347';
 const orange = '#F5CA88';
@@ -199,7 +190,7 @@ const TimerScreen = ({ timers, setTimers, navigation }) => {
 };
 
 // Admin Screen Component to add new timers
-const AdminScreen = ({ setTimers }) => {
+const AdminScreen = ({ timers, setTimers }) => {
   const [newName, setNewName] = useState('');
 
   const addName = () => {
@@ -213,7 +204,9 @@ const AdminScreen = ({ setTimers }) => {
       time: 0,
       running: false,
     };
-    setTimers((prevTimers) => [...prevTimers, newTimer]);
+    const updatedTimers = [...timers, newTimer];
+    setTimers(updatedTimers);
+    AsyncStorage.setItem('timers', JSON.stringify(updatedTimers)); // Save to storage
     setNewName('');
   };
 
@@ -244,6 +237,35 @@ const AdminScreen = ({ setTimers }) => {
 const App = () => {
   const [timers, setTimers] = useState(defaultTimers);
 
+  // Load timers from storage when the app starts
+  useEffect(() => {
+    const loadTimers = async () => {
+      try {
+        const savedTimers = await AsyncStorage.getItem('timers');
+        if (savedTimers) {
+          setTimers(JSON.parse(savedTimers));
+        }
+      } catch (error) {
+        console.error('Failed to load timers:', error);
+      }
+    };
+
+    loadTimers();
+  }, []);
+
+  // Save timers to storage whenever they change
+  useEffect(() => {
+    const saveTimers = async () => {
+      try {
+        await AsyncStorage.setItem('timers', JSON.stringify(timers));
+      } catch (error) {
+        console.error('Failed to save timers:', error);
+      }
+    };
+
+    saveTimers();
+  }, [timers]);
+
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Timer">
@@ -251,7 +273,7 @@ const App = () => {
           {(props) => <TimerScreen {...props} timers={timers} setTimers={setTimers} />}
         </Stack.Screen>
         <Stack.Screen name="Admin" options={{ title: 'Admin Panel' }}>
-          {(props) => <AdminScreen {...props} setTimers={setTimers} />}
+          {(props) => <AdminScreen {...props} timers={timers} setTimers={setTimers} />}
         </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
