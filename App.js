@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { AppState, StyleSheet, Text, View, TouchableOpacity, FlatList, Button, TextInput, Alert } from 'react-native';
+import {
+  AppState,
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  FlatList,
+  ScrollView,
+  Button,
+  TextInput,
+  Alert,
+  Platform,
+  useWindowDimensions,
+} from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -69,6 +82,7 @@ const formatTime = (time) => {
 const TimerScreen = ({ timers, setTimers, navigation }) => {
   const [appState, setAppState] = useState(AppState.currentState);
   const [backgroundTime, setBackgroundTime] = useState(null);
+  const { height } = useWindowDimensions(); // Get the height of the screen
 
   useEffect(() => {
     const handleAppStateChange = (nextAppState) => {
@@ -172,25 +186,53 @@ const TimerScreen = ({ timers, setTimers, navigation }) => {
     );
   };
 
+  // Render timers for mobile (FlatList)
+  const renderMobileTimers = () => (
+    <FlatList
+      data={sortedTimers}
+      renderItem={({ item, index }) => (
+        <>
+          <TimerItem
+            timer={item}
+            timers={timers}
+            toggleTimer={toggleTimer}
+            resetTimer={resetSingleTimer}
+            deleteTimer={deleteTimer}
+          />
+          {/* Render separator after the last active timer */}
+          {index === separatorIndex - 1 && renderSeparator()}
+        </>
+      )}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.flatListContent}
+    />
+  );
+
+  // Render timers for web (ScrollView with explicit height)
+  const renderWebTimers = () => (
+    <ScrollView
+      style={{ height: height - 100 }} // Adjust height to account for buttons and padding
+      contentContainerStyle={styles.scrollViewContent}
+    >
+      {sortedTimers.map((item, index) => (
+        <View key={item.id}>
+          <TimerItem
+            timer={item}
+            timers={timers}
+            toggleTimer={toggleTimer}
+            resetTimer={resetSingleTimer}
+            deleteTimer={deleteTimer}
+          />
+          {/* Render separator after the last active timer */}
+          {index === separatorIndex - 1 && renderSeparator()}
+        </View>
+      ))}
+    </ScrollView>
+  );
+
   return (
-    <View style={{ flex: 1 }}>
-      <FlatList
-        data={sortedTimers}
-        renderItem={({ item, index }) => (
-          <>
-            <TimerItem
-              timer={item}
-              timers={timers}
-              toggleTimer={toggleTimer}
-              resetTimer={resetSingleTimer}
-              deleteTimer={deleteTimer}
-            />
-            {/* Render separator after the last active timer */}
-            {index === separatorIndex - 1 && renderSeparator()}
-          </>
-        )}
-        keyExtractor={(item) => item.id}
-      />
+    <View style={styles.container}>
+      {Platform.OS === 'web' ? renderWebTimers() : renderMobileTimers()}
       <View style={styles.bottomButtonsContainer}>
         <Button title="Reset All Timers" onPress={resetTimers} />
         <Button
@@ -342,6 +384,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'black',
     marginHorizontal: 20,
     marginVertical: 10,
+  },
+  flatListContent: {
+    paddingBottom: 80, // Add padding to avoid buttons overlapping content
+  },
+  scrollViewContent: {
+    flexGrow: 1, // Ensure ScrollView takes up full height
+    paddingBottom: 80, // Add padding to avoid buttons overlapping content
   },
 });
 
