@@ -94,6 +94,7 @@ const TimerScreen = ({ timers, setTimers, navigation }) => {
     };
   }, [appState, backgroundTime, setTimers]);
 
+  // Sort timers: active timers first, then inactive timers
   const sortedTimers = timers.sort((a, b) => {
     // Prioritize active timers (those that are running)
     if (a.running && !b.running) return -1;
@@ -108,6 +109,14 @@ const TimerScreen = ({ timers, setTimers, navigation }) => {
 
     return 0; // No change if both are red or not
   });
+
+  // Find the index where the transition from active to inactive timers occurs
+  const separatorIndex = sortedTimers.findIndex((timer) => !timer.running);
+
+  // Render a separator between active and inactive timers
+  const renderSeparator = () => {
+    return <View style={styles.separator} />;
+  };
 
   // Toggle timer start/stop
   const toggleTimer = (id) => {
@@ -167,14 +176,18 @@ const TimerScreen = ({ timers, setTimers, navigation }) => {
     <View style={{ flex: 1 }}>
       <FlatList
         data={sortedTimers}
-        renderItem={({ item }) => (
-          <TimerItem
-            timer={item}
-            timers={timers}
-            toggleTimer={toggleTimer}
-            resetTimer={resetSingleTimer}
-            deleteTimer={deleteTimer}
-          />
+        renderItem={({ item, index }) => (
+          <>
+            <TimerItem
+              timer={item}
+              timers={timers}
+              toggleTimer={toggleTimer}
+              resetTimer={resetSingleTimer}
+              deleteTimer={deleteTimer}
+            />
+            {/* Render separator after the last active timer */}
+            {index === separatorIndex - 1 && renderSeparator()}
+          </>
         )}
         keyExtractor={(item) => item.id}
       />
@@ -323,6 +336,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingLeft: 10,
     fontSize: 18,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: 'black',
+    marginHorizontal: 20,
+    marginVertical: 10,
   },
 });
 
