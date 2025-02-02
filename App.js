@@ -134,25 +134,29 @@ const TimerScreen = ({ timers, setTimers, navigation }) => {
 
   // Toggle timer start/stop
   const toggleTimer = (id) => {
-    setTimers((prevTimers) =>
-      prevTimers.map((timer) =>
-        timer.id === id
-          ? {
-              ...timer,
-              running: !timer.running,
-              intervalId: !timer.running
-                ? setInterval(() => {
-                    setTimers((currentTimers) =>
-                      currentTimers.map((t) =>
-                        t.id === id ? { ...t, time: t.time + 0.1 } : t
-                      )
-                    );
-                  }, 100)
-                : clearInterval(timer.intervalId),
-            }
-          : timer
-      )
-    );
+    setTimers((prevTimers) => {
+      return prevTimers.map((timer) => {
+        if (timer.id === id) {
+          if (timer.running) {
+            // Stop the timer
+            clearInterval(timer.intervalId);
+            return { ...timer, running: false, intervalId: null };
+          } else {
+            // Start the timer and store the interval ID
+            const intervalId = setInterval(() => {
+              setTimers((currentTimers) =>
+                currentTimers.map((t) =>
+                  t.id === id ? { ...t, time: t.time + 0.1 } : t
+                )
+              );
+            }, 100);
+  
+            return { ...timer, running: true, intervalId };
+          }
+        }
+        return timer;
+      });
+    });
   };
 
   // Reset all timers
