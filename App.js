@@ -278,6 +278,7 @@ const AdminScreen = ({ timers, setTimers }) => {
         onChangeText={setNewName}
       />
       <Button title="Add Name" onPress={addName} />
+      <Text>Version : 20250202-01</Text>
       <Text>To use the App</Text>
       <Text>
         Press a timer to start the timer, press again to stop the timer. {'\n'}Long press to reset
@@ -287,6 +288,19 @@ const AdminScreen = ({ timers, setTimers }) => {
         Active timers will go to the top and be Blue. {'\n'}
         If the timer is {orangeWaternark / 60} minutes behind, it will turn Orange {'\n'}
         If the timer is {redWaternark / 60} minutes behind, it will turn Red{'\n'}
+      </Text>
+      <Text>
+        Names will need to be added at first. Enter the name above and press 'Add Name' {'\n'}
+        Names should persist on next run. {'\n'}
+      </Text>
+      <Text>
+        To make this an app on IOS, On the main timer page, press the box with the up arrow at the bottom of Safari{'\n'}
+        Scroll up till you find "add to Home Screen{'\n'}
+        Press the 'Add' button on the top right{'\n'}
+        This will make an icon on your home screen.{'\n'}
+      </Text>
+      <Text>
+        Bugs and suggestions can be sent to holger.paffrath(at)beanietech.com{'\n'}
       </Text>
     </View>
   );
